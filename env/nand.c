@@ -388,8 +388,6 @@ U_BOOT_ENV_LOCATION(nand) = {
 	.location	= ENVL_NAND,
 	ENV_NAME("NAND")
 	.load		= env_nand_load,
-#if defined(CMD_SAVEENV)
 	.save		= env_save_ptr(env_nand_save),
-#endif
 	.init		= env_nand_init,
 };
