@@ -318,9 +318,7 @@ U_BOOT_ENV_LOCATION(sf) = {
 	.location	= ENVL_SPI_FLASH,
 	ENV_NAME("SPI Flash")
 	.load		= env_sf_load,
-#ifdef CMD_SAVEENV
 	.save		= env_save_ptr(env_sf_save),
-#endif
 #if defined(INITENV) && defined(CONFIG_ENV_ADDR)
 	.init		= env_sf_init,
 #endif
