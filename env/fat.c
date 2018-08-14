@@ -134,7 +134,5 @@ U_BOOT_ENV_LOCATION(fat) = {
 #ifdef LOADENV
 	.load		= env_fat_load,
 #endif
-#ifdef CMD_SAVEENV
 	.save		= env_save_ptr(env_fat_save),
-#endif
 };
