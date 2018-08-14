@@ -360,9 +360,7 @@ U_BOOT_ENV_LOCATION(flash) = {
 #ifdef LOADENV
 	.load		= env_flash_load,
 #endif
-#ifdef CMD_SAVEENV
 	.save		= env_save_ptr(env_flash_save),
-#endif
 #ifdef INITENV
 	.init		= env_flash_init,
 #endif
