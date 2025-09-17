@@ -1,0 +1,1 @@
+uenvcmd=echo ci-tron boot ; setenv fdt_file dtbs/ti/k3-am625-sk.dtb; if dhcp ; then source ${fileaddr} ; fi ; reset
