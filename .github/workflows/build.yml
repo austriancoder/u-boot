@@ -1,0 +1,119 @@
+name: Build U-Boot am68-sk
+
+on:
+  push:
+    branches: [ ci-tron-am68-sk ]
+
+jobs:
+  build-uboot:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          gcc-aarch64-linux-gnu \
+          git \
+          xz-utils \
+          build-essential \
+          autoconf \
+          flex \
+          bison \
+          libssl-dev \
+          libgnutls28-dev \
+          bc \
+          libncurses-dev \
+          python3 \
+          python3-setuptools \
+          python3-dev \
+          python3-yaml \
+          python3-jsonschema \
+          python3-pyelftools \
+          swig \
+          yamllint \
+          dosfstools \
+          parted \
+          mtools \
+          genimage
+
+    - name: Set up environment
+      run: |
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export ARCH=arm64
+        echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+        echo "ARCH=arm64" >> $GITHUB_ENV
+
+    - name: Configure U-Boot
+      run: |
+        make am68_sk_a72_defconfig
+
+    - name: Create BUILD_INFO.txt
+      run: |
+        echo "U-Boot Build Info" | tee BUILD_INFO.txt
+        echo "Build Date: $(date)" | tee -a BUILD_INFO.txt
+        echo "Git Commit: ${{ github.sha }}" | tee -a BUILD_INFO.txt
+        echo "Architecture: arm64" | tee -a BUILD_INFO.txt
+
+    - name: Build U-Boot
+      run: |
+        make BL31=./prebuilt-images/bl31.bin TEE=./prebuilt-images/bl32.bin BINMAN_INDIRS=./prebuilt-images -j$(nproc) || true
+
+    - name: Prepare files for image creation
+      run: |
+        # Create directory structure for genimage
+        mkdir -p image_root
+
+        cp BUILD_INFO.txt image_root/
+        cp uEnv.txt image_root/
+
+        # U-Boot build artifact
+        cp u-boot.img image_root/
+
+        # Copy TI prebuilt-images files to image root
+        cp prebuilt-images/* image_root/
+        rm image_root/bl*.bin
+
+        # List files that will be included
+        echo "Files prepared for image:"
+        ls -la image_root/
+
+    - name: Create bootable microSD image with genimage
+      run: |
+        # Create output directories
+        mkdir -p artifacts tmp
+
+        # Run genimage
+        genimage \
+          --rootpath image_root \
+          --tmppath tmp \
+          --inputpath image_root \
+          --outputpath artifacts \
+          --config genimage.cfg
+
+        # Clean up intermediate files
+        rm -f artifacts/boot.vfat
+
+        # Create checksums
+        cd artifacts
+        sha256sum ci-tron-am68-sk.img > ci-tron-am68-sk.img.sha256
+        md5sum ci-tron-am68-sk.img > ci-tron-am68-sk.img.md5
+
+        echo "Created bootable microSD image with genimage:"
+        ls -lh ci-tron-am68-sk.img
+
+    - name: Generated artifacts
+      run: |
+        ls -la artifacts/
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ci-tron-am68-sk-${{ github.sha }}
+        path: artifacts/
+        retention-days: 30
